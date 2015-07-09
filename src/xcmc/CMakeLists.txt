@@ -1,5 +1,8 @@
 set(xcmc_SOURCES
 
+	util/getErrnoError.cpp
+	util/getErrnoError.hpp
+
 	xcb/XcbAtom.cpp
 	xcb/XcbAtom.hpp
 	xcb/XcbConnection.cpp
