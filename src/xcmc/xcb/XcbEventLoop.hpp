@@ -3,7 +3,9 @@
 
 #include <atomic>
 #include <utility>
+#include <experimental/optional>
 
+#include "xcmc/thread/CancellationToken.hpp"
 #include "xcmc/xcb/XcbConnection.hpp"
 
 namespace xcm
@@ -15,7 +17,8 @@ class XcbEventLoop
 public:
 	template <typename... Arg>
 	XcbEventLoop(Arg... arg)
-	        : running(true), connection(std::forward<Arg>(arg)...)
+	        : token(thread::CancellationToken()),
+	          connection(std::forward<Arg>(arg)...)
 	{
 	}
 
@@ -32,7 +35,7 @@ public:
 	void run();
 
 private:
-	std::atomic<bool> running;
+	std::experimental::optional<thread::CancellationToken> token;
 	XcbConnection connection;
 };
 }

@@ -15,7 +15,7 @@
 namespace
 {
 xcb_generic_event_t *waitForEvent(xcm::xcb::XcbConnection const &connection,
-                                  std::atomic<bool> &interrupt)
+                                  xcm::thread::CancellationTokenHandle handle)
 {
 	int fd = xcb_get_file_descriptor(connection.get());
 	fd_set fds;
@@ -26,8 +26,12 @@ xcb_generic_event_t *waitForEvent(xcm::xcb::XcbConnection const &connection,
 	const struct timespec TIMEOUT = {0l, 250000000l};
 
 	xcb_generic_event_t *event = nullptr;
-	while(interrupt.load(std::memory_order_seq_cst))
+	for(;;)
 	{
+		std::experimental::optional<xcm::thread::CancellationToken>
+		        token = handle.lock();
+		if(!token) break;
+
 		int ret = pselect(fd + 1, &fds, nullptr, nullptr, &TIMEOUT,
 		                  nullptr);
 		if(ret < 0)
@@ -62,18 +66,19 @@ XcbConnection const &XcbEventLoop::get() const
 
 void XcbEventLoop::interrupt()
 {
-	running.store(false, std::memory_order_seq_cst);
+	token = std::experimental::nullopt;
 }
 
 void XcbEventLoop::reset()
 {
-	running.store(true, std::memory_order_seq_cst);
+	if(!token) token.emplace();
 }
 
 void XcbEventLoop::run()
 {
 	xcb_generic_event_t *e;
-	while((e = waitForEvent(connection, running)) != nullptr)
+	thread::CancellationTokenHandle handle(*token);
+	while((e = waitForEvent(connection, handle)) != nullptr)
 	{
 		std::unique_ptr<xcb_generic_event_t, void (*)(void *)> event(
 		        e, std::free);
