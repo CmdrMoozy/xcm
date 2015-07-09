@@ -1,5 +1,8 @@
 set(xcmc_SOURCES
 
+	thread/CancellationToken.cpp
+	thread/CancellationToken.hpp
+
 	util/getErrnoError.cpp
 	util/getErrnoError.hpp
 
