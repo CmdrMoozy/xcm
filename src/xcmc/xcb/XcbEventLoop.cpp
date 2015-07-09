@@ -1,6 +1,8 @@
 #include "XcbEventLoop.hpp"
 
+#include <algorithm>
 #include <cstdlib>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 
@@ -14,8 +16,10 @@
 
 namespace
 {
-xcb_generic_event_t *waitForEvent(xcm::xcb::XcbConnection const &connection,
-                                  xcm::thread::CancellationTokenHandle handle)
+xcb_generic_event_t *pollForEvents(std::mutex &workMutex,
+                                   std::deque<std::function<void()>> &work,
+                                   xcm::xcb::XcbConnection const &connection,
+                                   xcm::thread::CancellationTokenHandle handle)
 {
 	int fd = xcb_get_file_descriptor(connection.get());
 	fd_set fds;
@@ -28,6 +32,18 @@ xcb_generic_event_t *waitForEvent(xcm::xcb::XcbConnection const &connection,
 	xcb_generic_event_t *event = nullptr;
 	for(;;)
 	{
+		// Deal with any non-event work first.
+		std::deque<std::function<void()>> newWork;
+		{
+			std::lock_guard<std::mutex> lock(workMutex);
+			std::swap(work, newWork);
+		}
+		while(!newWork.empty())
+		{
+			(newWork.front())();
+			newWork.pop_front();
+		}
+
 		std::experimental::optional<xcm::thread::CancellationToken>
 		        token = handle.lock();
 		if(!token) break;
@@ -64,6 +80,18 @@ XcbConnection const &XcbEventLoop::get() const
 	return connection;
 }
 
+void XcbEventLoop::post(std::function<void()> const &f)
+{
+	std::lock_guard<std::mutex> lock(workMutex);
+	work.push_back(f);
+}
+
+void XcbEventLoop::post(std::vector<std::function<void()>> const &fs)
+{
+	std::lock_guard<std::mutex> lock(workMutex);
+	std::copy(fs.begin(), fs.end(), std::back_inserter(work));
+}
+
 void XcbEventLoop::interrupt()
 {
 	token = std::experimental::nullopt;
@@ -78,7 +106,8 @@ void XcbEventLoop::run()
 {
 	xcb_generic_event_t *e;
 	thread::CancellationTokenHandle handle(*token);
-	while((e = waitForEvent(connection, handle)) != nullptr)
+	while((e = pollForEvents(workMutex, work, connection, handle)) !=
+	      nullptr)
 	{
 		std::unique_ptr<xcb_generic_event_t, void (*)(void *)> event(
 		        e, std::free);
