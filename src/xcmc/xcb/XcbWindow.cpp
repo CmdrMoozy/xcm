@@ -24,5 +24,10 @@ XcbWindow::XcbWindow(XcbConnection const &connection)
 	                  &VALUE_LIST[0]);
 	xcb_map_window(connection.get(), xid);
 }
+
+xcb_window_t XcbWindow::get() const
+{
+	return xid;
+}
 }
 }

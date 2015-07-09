@@ -19,8 +19,10 @@ public:
 	~XcbWindow() = default;
 	XcbWindow &operator=(XcbWindow const &) = delete;
 
+	xcb_window_t get() const;
+
 private:
-	uint32_t xid;
+	xcb_window_t xid;
 };
 }
 }

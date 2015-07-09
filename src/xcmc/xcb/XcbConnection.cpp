@@ -21,5 +21,11 @@ xcb_connection_t *XcbConnection::get() const
 {
 	return connection;
 }
+
+void XcbConnection::flush()
+{
+	if(xcb_flush(connection) <= 0)
+		throw std::runtime_error("Flushing XCB connection failed.");
+}
 }
 }

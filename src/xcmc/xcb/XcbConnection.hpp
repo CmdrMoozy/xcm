@@ -17,6 +17,8 @@ public:
 
 	xcb_connection_t *get() const;
 
+	void flush();
+
 private:
 	xcb_connection_t *connection;
 };
