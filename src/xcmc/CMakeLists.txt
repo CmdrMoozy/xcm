@@ -7,6 +7,8 @@ set(xcmc_SOURCES
 	xcb/XcbAtom.hpp
 	xcb/XcbConnection.cpp
 	xcb/XcbConnection.hpp
+	xcb/XcbEventLoop.cpp
+	xcb/XcbEventLoop.hpp
 	xcb/XcbWindow.cpp
 	xcb/XcbWindow.hpp
 

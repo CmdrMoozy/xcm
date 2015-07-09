@@ -6,22 +6,24 @@
 #include <xcb/xproto.h>
 
 #include "xcmc/xcb/XcbAtom.hpp"
-#include "xcmc/xcb/XcbConnection.hpp"
+#include "xcmc/xcb/XcbEventLoop.hpp"
 #include "xcmc/xcb/XcbWindow.hpp"
 
 int main(int, char const **)
 {
 	try
 	{
-		xcm::xcb::XcbConnection connection;
-		xcm::xcb::XcbWindow window(connection);
+		xcm::xcb::XcbEventLoop eventLoop;
+		xcm::xcb::XcbWindow window(eventLoop.get());
 
 		std::vector<xcm::xcb::XcbAtom> atoms =
 		        xcm::xcb::constructXcbAtoms(
-		                connection,
+		                eventLoop.get(),
 		                {xcm::xcb::XcbAtomType::CLIPBOARD_MANAGER});
 
-		connection.flush();
+		eventLoop.get().flush();
+
+		eventLoop.run();
 
 		return EXIT_SUCCESS;
 	}
