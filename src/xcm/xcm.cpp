@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <system_error>
@@ -6,8 +7,11 @@
 #include <vector>
 #include <experimental/optional>
 
+#include <signal.h>
+
 #include <xcb/xproto.h>
 
+#include "xcmc/util/getErrnoError.hpp"
 #include "xcmc/xcb/XcbAtom.hpp"
 #include "xcmc/xcb/XcbEventLoop.hpp"
 #include "xcmc/xcb/XcbWindow.hpp"
@@ -19,6 +23,11 @@ static std::experimental::optional<xcm::xcb::XcbWindow> WINDOW{
         std::experimental::nullopt};
 static std::experimental::optional<std::vector<xcm::xcb::XcbAtom>> ATOMS{
         std::experimental::nullopt};
+
+void handleTermination(int)
+{
+	EVENT_LOOP.interrupt();
+}
 
 void joinThread(std::thread &thread)
 {
@@ -37,6 +46,16 @@ int main(int, char const **)
 {
 	try
 	{
+		struct sigaction action;
+		std::memset(&action, 0, sizeof(struct sigaction));
+		action.sa_handler = handleTermination;
+		int ret = sigaction(SIGINT, &action, nullptr);
+		if(ret != 0)
+			throw std::runtime_error(xcm::util::getErrnoError());
+		ret = sigaction(SIGTERM, &action, nullptr);
+		if(ret != 0)
+			throw std::runtime_error(xcm::util::getErrnoError());
+
 		std::thread thread([]()
 		                   {
 			                   EVENT_LOOP.run();
