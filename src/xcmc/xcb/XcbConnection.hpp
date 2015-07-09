@@ -11,7 +11,9 @@ class XcbConnection
 {
 public:
 	XcbConnection();
+	XcbConnection(XcbConnection const &) = delete;
 	~XcbConnection();
+	XcbConnection &operator=(XcbConnection const &) = delete;
 
 	xcb_connection_t *get() const;
 
