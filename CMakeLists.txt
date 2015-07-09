@@ -34,7 +34,7 @@ include_directories(3rdparty/include src)
 
 set(xcm_LIBRARIES
 
-	${XCB_LIBRARIES}
+	${LIBXCB_LIBRARIES}
 
 )
 
@@ -43,6 +43,7 @@ set(xcm_LIBRARIES
 enable_testing()
 
 add_subdirectory(src/xcm)
+add_subdirectory(src/xcmc)
 
 if(CMAKE_BUILD_TYPE_LOWER MATCHES debug)
 	add_subdirectory(src/test)

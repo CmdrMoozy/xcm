@@ -5,5 +5,5 @@ set(xcm-test_SOURCES
 )
 
 add_executable(xcm-test ${xcm-test_SOURCES})
-target_link_libraries(xcm-test ${xcm_LIBRARIES})
+target_link_libraries(xcm-test ${xcm_LIBRARIES} xcmc)
 add_test(xcm-test xcm-test)

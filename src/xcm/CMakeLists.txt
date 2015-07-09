@@ -5,4 +5,4 @@ set(xcm_SOURCES
 )
 
 add_executable(xcm ${xcm_SOURCES})
-target_link_libraries(xcm ${xcm_LIBRARIES})
+target_link_libraries(xcm ${xcm_LIBRARIES} xcmc)

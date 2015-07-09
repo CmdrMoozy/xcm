@@ -1,6 +1,7 @@
 set(xcmc_SOURCES
 
-
+	xcb/XcbConnection.cpp
+	xcb/XcbConnection.hpp
 
 )
 
