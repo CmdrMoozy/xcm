@@ -18,6 +18,7 @@ namespace
 {
 xcb_generic_event_t *pollForEvents(std::mutex &workMutex,
                                    std::deque<std::function<void()>> &work,
+                                   std::deque<std::function<void()>> &requests,
                                    xcm::xcb::XcbConnection const &connection,
                                    xcm::thread::CancellationTokenHandle handle)
 {
@@ -32,21 +33,35 @@ xcb_generic_event_t *pollForEvents(std::mutex &workMutex,
 	xcb_generic_event_t *event = nullptr;
 	for(;;)
 	{
-		// Deal with any non-event work first.
-		std::deque<std::function<void()>> newWork;
-		{
-			std::lock_guard<std::mutex> lock(workMutex);
-			std::swap(work, newWork);
-		}
-		while(!newWork.empty())
-		{
-			(newWork.front())();
-			newWork.pop_front();
-		}
-
 		std::experimental::optional<xcm::thread::CancellationToken>
 		        token = handle.lock();
 		if(!token) break;
+
+		// Deal with any non-event work first.
+
+		std::deque<std::function<void()>> todo;
+
+		{
+			std::lock_guard<std::mutex> lock(workMutex);
+			std::swap(work, todo);
+		}
+		while(!todo.empty())
+		{
+			(todo.front())();
+			todo.pop_front();
+		}
+
+		{
+			std::lock_guard<std::mutex> lock(workMutex);
+			std::swap(requests, todo);
+		}
+		while(!todo.empty())
+		{
+			(todo.front())();
+			todo.pop_front();
+		}
+
+		// Handle any X events.
 
 		int ret = pselect(fd + 1, &fds, nullptr, nullptr, &TIMEOUT,
 		                  nullptr);
@@ -106,8 +121,8 @@ void XcbEventLoop::run()
 {
 	xcb_generic_event_t *e;
 	thread::CancellationTokenHandle handle(*token);
-	while((e = pollForEvents(workMutex, work, connection, handle)) !=
-	      nullptr)
+	while((e = pollForEvents(workMutex, work, requests, connection,
+	                         handle)) != nullptr)
 	{
 		std::unique_ptr<xcb_generic_event_t, void (*)(void *)> event(
 		        e, std::free);
